@@ -1,0 +1,13 @@
+#!/bin/bash -e
+# convert ass format subtitles to srt
+# accept a list of arguments, convert each of them and rsrt
+
+for i in "$@"; do {
+    if [ "${i: -4}" == '.ass' ]; then
+        ffmpeg -loglevel fatal -i "$i" "${i%.ass}.srt"
+        rsrt "${i%.ass}.srt"
+    fi
+} &
+done
+
+wait

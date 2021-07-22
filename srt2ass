@@ -1,0 +1,59 @@
+#!/usr/bin/python3
+'''
+convert srt to ass with a suitable format
+'''
+
+import argparse
+import threading
+from subprocess import run
+
+SHADOW = 'ScaledBorderAndShadow:'
+DEFAULT_STYLE = 'Style: Default,DejaVu Sans,20,&Hffffff,&Hffffff,\
+&H0,&H0,0,0,0,0,100,100,0,0,1,2,1,2,10,10,2,134\n'
+EN_STYLE = r'{\fs14}'
+
+
+def main(srt_in):
+    # filename conversion
+    ass_out = srt_in[:-4] + '.ass'
+
+    # srt to ass
+    run(('ffmpeg', '-loglevel', 'fatal', '-i', srt_in, ass_out, '-y'),
+        check=True)
+
+    with open(ass_out, 'r', encoding='utf-8') as srt:
+        lines = srt.readlines()
+
+    # chinese subtitles style
+    for index, i in enumerate(lines):
+        if i.startswith('Style: '):
+            lines[index] = DEFAULT_STYLE
+            break
+
+    # english subtitles style
+    for index, i in enumerate(lines):
+        if r'\N' in i:
+            position = i.find(r'\N')
+            lines[index] = i[:position] + r'\N' + EN_STYLE + i[position + 2:]
+
+    with open(ass_out, 'w', encoding='utf-8') as ass:
+        for line in lines:
+            # remove font border
+            if line.startswith(SHADOW):
+                line = line.replace('yes', 'no')
+            ass.write(line)
+
+
+if __name__ == '__main__':
+    PARSER = argparse.ArgumentParser(
+        description='convert srt format to ass with a suitable style.'
+    )
+    PARSER.add_argument(
+        'srt_input',
+        nargs='+',
+        help='input subtitles file(s)',
+    )
+    ARGS = PARSER.parse_args()
+
+    for arg in ARGS.srt_input:
+        threading.Thread(target=main, args=[arg]).start()

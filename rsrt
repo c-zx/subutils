@@ -1,0 +1,41 @@
+#!/usr/bin/python3
+'''
+convert srt text encoding to utf-8 and remove its style(html tags)
+'''
+
+import re
+import sys
+from threading import Thread
+
+import pysrt
+
+try:
+    from cchardet import detect
+except ImportError:
+    from chardet import detect
+
+
+def convert_to_utf8(fname):
+    with open(fname, 'rb') as binary:
+        charenc = detect(binary.read())['encoding']
+    with open(fname, 'r', encoding=charenc) as fin:
+        content = fin.read()
+    with open(fname, 'w', encoding='UTF-8') as fout:
+        fout.write(content)
+
+
+def remove_html_tags(fname):
+    srt: pysrt.SubRipFile = pysrt.open(fname, encoding='UTF-8')
+    for sub in srt:
+        sub.text = re.sub('<[^<]+?>', '', sub.text)
+    srt.save(fname, encoding='UTF-8')
+
+
+def main(fname):
+    convert_to_utf8(fname)
+    remove_html_tags(fname)
+
+
+if __name__ == '__main__':
+    for fname in sys.argv[1:]:
+        Thread(target=main, args=(fname,)).start()
