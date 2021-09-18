@@ -4,44 +4,36 @@ convert srt to ass with a suitable format
 '''
 
 import argparse
-import threading
-from subprocess import run
+from threading import Thread
 
-SHADOW = 'ScaledBorderAndShadow:'
-DEFAULT_STYLE = 'Style: Default,DejaVu Sans,20,&Hffffff,&Hffffff,\
-&H0,&H0,0,0,0,0,100,100,0,0,1,2,1,2,10,10,2,134\n'
+import pysubs2
+
+BORDER = 'ScaledBorderAndShadow'
+
+FONT = 'DejaVu Sans'
+FONT_SIZE = 20
+MARGINV = 2
+
 EN_STYLE = r'{\fs14}'
 
 
 def main(srt_in):
-    # filename conversion
-    ass_out = srt_in[:-4] + '.ass'
+    subs = pysubs2.load(srt_in, encoding='UTF-8')
 
-    # srt to ass
-    run(('ffmpeg', '-loglevel', 'fatal', '-i', srt_in, ass_out, '-y'),
-        check=True)
+    subs.info[BORDER] = 'no'
 
-    with open(ass_out, 'r', encoding='utf-8') as srt:
-        lines = srt.readlines()
+    subs.styles['Default'].fontname = FONT
+    subs.styles['Default'].fontsize = FONT_SIZE
+    subs.styles['Default'].marginv = MARGINV
 
-    # chinese subtitles style
-    for index, i in enumerate(lines):
-        if i.startswith('Style: '):
-            lines[index] = DEFAULT_STYLE
-            break
+    for sub in subs:
+        position = sub.text.find(r'\N')
+        if position != -1:
+            sub.text = sub.text[:position] \
+                + r'\N' + EN_STYLE\
+                + sub.text[position + 2:]
 
-    # english subtitles style
-    for index, i in enumerate(lines):
-        if r'\N' in i:
-            position = i.find(r'\N')
-            lines[index] = i[:position] + r'\N' + EN_STYLE + i[position + 2:]
-
-    with open(ass_out, 'w', encoding='utf-8') as ass:
-        for line in lines:
-            # remove font border
-            if line.startswith(SHADOW):
-                line = line.replace('yes', 'no')
-            ass.write(line)
+    subs.save(srt_in[:-4] + '.ass', encoding='UTF-8')
 
 
 if __name__ == '__main__':
@@ -56,4 +48,4 @@ if __name__ == '__main__':
     ARGS = PARSER.parse_args()
 
     for arg in ARGS.srt_input:
-        threading.Thread(target=main, args=[arg]).start()
+        Thread(target=main, args=[arg]).start()

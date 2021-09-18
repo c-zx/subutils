@@ -2,9 +2,6 @@
 ** Requirements
    - Python
      - cchardet or chardet
-     - pysrt
-*** Install through pip
-    ~pip install cchardet pysrt --user~
-*** Install through package manager
-**** archlinux
-     ~sudo pacman -S python-cchardet python-pysrt~
+     - pysubs2
+*** Install dependencies through pip
+    ~pip install cchardet pysubs2 --user~
